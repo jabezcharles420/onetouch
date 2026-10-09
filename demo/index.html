@@ -1,0 +1,323 @@
+<title>Dragonfly WhatsApp Booking</title>
+<style>
+/* Layout: one phone-width WhatsApp chat, full screen on mobile. Plain native look, real Cloud API features only. */
+:root{
+  --wall:#efeae2; --in:#ffffff; --out:#d9fdd3; --text:#111b21; --meta:#667781;
+  --bar:#ffffff; --line:#e9edef; --green:#008069; --btn:#00a884; --link:#027eb5;
+  --sheet:#ffffff; --chip:#ffffffd9; --scrim:#0b141a66; --note:#fff5c4;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --wall:#0b141a; --in:#202c33; --out:#005c4b; --text:#e9edef; --meta:#8696a0;
+  --bar:#202c33; --line:#2a3942; --green:#00a884; --btn:#00a884; --link:#53bdeb;
+  --sheet:#111b21; --chip:#182229; --scrim:#000a; --note:#3b3a1c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --wall:#0b141a; --in:#202c33; --out:#005c4b; --text:#e9edef; --meta:#8696a0;
+  --bar:#202c33; --line:#2a3942; --green:#00a884; --btn:#00a884; --link:#53bdeb;
+  --sheet:#111b21; --chip:#182229; --scrim:#000a; --note:#3b3a1c; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--wall);color:var(--text);font:15px/1.35 system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;display:flex;justify-content:center}
+.app{position:relative;width:100%;max-width:430px;height:100%;display:flex;flex-direction:column;background:var(--wall);overflow:hidden}
+@media (min-width:600px){.app{border-left:1px solid var(--line);border-right:1px solid var(--line)}}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible{outline:2px solid var(--link);outline-offset:2px}
+
+.head{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bar);border-bottom:1px solid var(--line)}
+.av{width:38px;height:38px;border-radius:50%;background:#1f2c34;color:#e9c46a;display:grid;place-items:center;font-weight:700;font-size:14px;flex:none}
+.head b{display:block;font-size:16px}.head small{color:var(--meta)}
+.head .sp{flex:1}
+.reset{font-size:13px;color:var(--link);padding:6px}
+
+.chat{flex:1;overflow-y:auto;padding:12px 12px 16px;display:flex;flex-direction:column;gap:6px}
+.chip{align-self:center;background:var(--chip);color:var(--meta);font-size:12.5px;padding:5px 10px;border-radius:8px;text-align:center;max-width:85%}
+.chip.note{background:var(--note);color:var(--text)}
+.msg{max-width:82%;display:flex;flex-direction:column;gap:2px}
+.msg.in{align-self:flex-start}.msg.out{align-self:flex-end}
+.bub{background:var(--in);border-radius:8px;padding:6px 8px 4px;box-shadow:0 1px .5px #0b141a22;white-space:pre-wrap;overflow-wrap:anywhere}
+.out .bub{background:var(--out)}
+.t{float:right;font-size:11px;color:var(--meta);margin:6px 0 0 10px}
+.tick{color:#53bdeb}
+.foot{display:block;color:var(--meta);font-size:13px;margin-top:4px}
+.att{display:flex;flex-direction:column;gap:2px}
+.att button{background:var(--in);border-radius:8px;padding:9px;color:var(--link);font-weight:500;box-shadow:0 1px .5px #0b141a22;display:flex;justify-content:center;align-items:center;gap:6px}
+.att button[disabled]{opacity:.5;cursor:default}
+.cta{display:flex;justify-content:center;align-items:center;gap:6px;border-top:1px solid var(--line);margin:6px -8px -4px;padding:9px;color:var(--link);font-weight:500;width:calc(100% + 16px)}
+.cta[disabled]{color:var(--meta);cursor:default}
+.order{display:flex;justify-content:space-between;gap:12px;border:1px solid var(--line);border-radius:6px;padding:8px;margin:6px 0 2px;font-size:14px}
+.map{height:120px;border-radius:6px;margin-bottom:6px;background:
+  linear-gradient(90deg,transparent 46%,#fff8 46% 50%,transparent 50%),
+  linear-gradient(0deg,transparent 58%,#fff8 58% 62%,transparent 62%),
+  linear-gradient(35deg,transparent 30%,#fff6 30% 33%,transparent 33%),#cfe3d0;position:relative}
+.map::after{content:"";position:absolute;left:calc(48% - 9px);top:calc(60% - 24px);width:18px;height:18px;background:#e53935;border-radius:50% 50% 50% 0;transform:rotate(-45deg)}
+.typing{align-self:flex-start;background:var(--in);border-radius:8px;padding:10px 12px;display:flex;gap:4px}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--meta);animation:b 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes b{0%,60%,100%{opacity:.3}30%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.typing i{animation:none}}
+
+.composer{display:flex;gap:8px;padding:8px;background:var(--wall)}
+.field{flex:1;background:var(--bar);border-radius:22px;padding:10px 14px;color:var(--text);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.field:empty::before{content:"Message";color:var(--meta)}
+.send{width:44px;height:44px;border-radius:50%;background:var(--btn);color:#fff;display:grid;place-items:center;flex:none}
+.send[disabled]{opacity:.5}
+.pulse{animation:p 1.4s infinite}@keyframes p{50%{box-shadow:0 0 0 8px #00a88433}}
+
+/* Full-screen sheets: WhatsApp Flow, order review, UPI */
+.sheet{position:absolute;inset:0;background:var(--sheet);display:flex;flex-direction:column;z-index:5}
+.sheet header{display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid var(--line);font-weight:600;font-size:17px}
+.sheet header button{font-size:20px;line-height:1;color:var(--meta)}
+.body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:18px}
+.lbl{font-weight:600;font-size:15px}
+.radio{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px}
+.radio label{display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer}
+.radio label+label{border-top:1px solid var(--line)}
+.radio small{display:block;color:var(--meta);font-size:13px}
+.radio input{margin-left:auto;accent-color:var(--green);width:20px;height:20px}
+select,.input{width:100%;font:inherit;color:var(--text);background:var(--sheet);border:1px solid var(--meta);border-radius:8px;padding:12px}
+.sheet footer{padding:12px 16px 16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.primary{background:var(--btn);color:#fff;border-radius:24px;padding:12px;font-weight:600;width:100%}
+.primary[disabled]{opacity:.45;cursor:default}
+.managed{font-size:12px;color:var(--meta);text-align:center}
+.loading{color:var(--meta);font-size:14px}
+.row{display:flex;justify-content:space-between;gap:12px;padding:6px 0}
+.row.total{border-top:1px solid var(--line);padding-top:12px;font-weight:600}
+.app-pick button{width:100%;text-align:left;padding:14px;border:1px solid var(--line);border-radius:10px}
+.sim{background:var(--note);border-radius:10px;padding:12px;font-size:14px}
+</style>
+
+<div class="app" id="app">
+  <div class="head">
+    <div class="av">DF</div>
+    <div><b>Dragonfly – The Art Hotel</b><small>Business account</small></div>
+    <div class="sp"></div>
+    <button class="reset" id="mode">Returning guest</button>
+  </div>
+  <div class="chat" id="chat" aria-live="polite"></div>
+  <div class="composer">
+    <div class="field" id="field"></div>
+    <button class="send" id="send" aria-label="Send">➤</button>
+  </div>
+</div>
+
+<script>
+const PRICES = {3: 999, 6: 1499, 9: 1799, 12: 1999};   // sample day-use rates
+const GUEST = {name: 'Rahul Mehta', phone: '+91 98••• ••210'};
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const $ = s => document.querySelector(s);
+const chat = $('#chat'), field = $('#field'), sendBtn = $('#send'), app = $('#app');
+const inr = n => '₹' + n.toLocaleString('en-IN');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const wa = s => esc(s).replace(/\*([^*\n]+)\*/g, '<b>$1</b>').replace(/_([^_\n]+)_/g, '<i>$1</i>');  // WhatsApp *bold* _italic_
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const ist = () => { const d = new Date(); return new Date(d.getTime() + (330 + d.getTimezoneOffset()) * 60000); };
+const clock = () => { const n = ist(); return `${n.getHours() % 12 || 12}:${String(n.getMinutes()).padStart(2,'0')} ${n.getHours() < 12 ? 'am' : 'pm'}`; };
+const hr = h => `${(h % 24) % 12 || 12} ${(h % 24) < 12 ? 'AM' : 'PM'}`;
+
+let scenario = 'first', booking = null, onSend = null;
+
+function dates() {
+  const n = ist();
+  return [0, 1, 2].map(i => {
+    const d = new Date(n.getFullYear(), n.getMonth(), n.getDate() + i);
+    return {id: i, title: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : DAYS[d.getDay()], sub: `${DAYS[d.getDay()]}, ${d.getDate()} ${MON[d.getMonth()]}`};
+  });
+}
+// Check-in slots 8 AM – 8 PM; today's past hours removed. Long stays lose two afternoon slots to show live availability.
+function slots(day, hours) {
+  const now = ist().getHours();
+  const out = [];
+  for (let h = 8; h <= 20; h++) {
+    if (day === 0 && h <= now) continue;
+    if (hours >= 9 && (h === 13 || h === 14)) continue;
+    out.push(h);
+  }
+  return out;
+}
+
+function scroll() { chat.scrollTop = chat.scrollHeight; }
+function chipEl(text, cls = '') { const c = document.createElement('div'); c.className = 'chip ' + cls; c.textContent = text; chat.append(c); scroll(); }
+function bubble(side, inner, extra = '') {
+  const m = document.createElement('div');
+  m.className = 'msg ' + side;
+  const tick = side === 'out' ? ' <span class="tick">✓✓</span>' : '';
+  m.innerHTML = `<div class="bub">${inner}<span class="t">${clock()}${tick}</span></div>${extra}`;
+  chat.append(m); scroll();
+  return m;
+}
+async function typing(ms = 900) {
+  const t = document.createElement('div'); t.className = 'typing'; t.innerHTML = '<i></i><i></i><i></i>';
+  chat.append(t); scroll(); await wait(ms); t.remove();
+}
+function compose(text, handler) {
+  field.textContent = text; onSend = handler;
+  sendBtn.disabled = !text; sendBtn.classList.toggle('pulse', !!text);
+}
+sendBtn.onclick = () => {
+  if (!onSend) return;
+  const text = field.textContent, h = onSend;
+  compose('', null); bubble('out', wa(text)); h();
+};
+
+/* ---------- Message types (each one is a real Cloud API message) ---------- */
+
+// interactive.type = "flow": body + footer + one CTA that opens the WhatsApp Flow
+function flowMessage() {
+  const m = bubble('in', wa(`Namaste ${GUEST.name.split(' ')[0]}! Day-use rooms at Dragonfly, Andheri East.\n\n3 hrs · ${inr(PRICES[3])}\n6 hrs · ${inr(PRICES[6])}\n9 hrs · ${inr(PRICES[9])}\n12 hrs · ${inr(PRICES[12])}`) +
+    `<span class="foot">Best price, guaranteed</span><button class="cta">☰ Book a room</button>`);
+  m.querySelector('.cta').onclick = openFlow;
+}
+
+// interactive.type = "button": up to 3 reply buttons, 20 characters each
+function replyButtons(text, buttons) {
+  const att = buttons.map((b, i) => `<button data-i="${i}">${esc(b.title)}</button>`).join('');
+  const m = bubble('in', wa(text), `<div class="att">${att}</div>`);
+  m.querySelectorAll('.att button').forEach(btn => btn.onclick = () => {
+    m.querySelectorAll('.att button').forEach(x => x.disabled = true);
+    const b = buttons[btn.dataset.i];
+    bubble('out', esc(b.title)); b.run();
+  });
+}
+
+// interactive.type = "order_details": WhatsApp Pay checkout (India)
+function orderMessage() {
+  const b = booking;
+  const m = bubble('in', wa(`Room held for 10 minutes. Pay to confirm.`) +
+    `<div class="order"><span>Deluxe · ${b.hours} hrs day use<br><small style="color:var(--meta)">${b.dateLabel}, ${hr(b.time)}</small></span><b>${inr(b.amount)}</b></div>` +
+    `<button class="cta">Review and pay</button>`);
+  const cta = m.querySelector('.cta');
+  cta.onclick = () => openOrder(cta);
+}
+
+// type = "location"
+function locationMessage() {
+  bubble('in', `<div class="map" role="img" aria-label="Map pin"></div><b>Dragonfly – The Art Hotel</b><br><small style="color:var(--meta)">Andheri East, Mumbai</small>`);
+}
+
+// Template message (pre-approved, can be sent outside the 24-hour window)
+function templateMessage(text, buttons) {
+  const att = buttons.map(b => `<button>${esc(b)}</button>`).join('');
+  const m = bubble('in', wa(text), `<div class="att">${att}</div>`);
+  m.querySelectorAll('.att button').forEach(btn => btn.onclick = () => chipEl('Opens Google Maps', 'note'));
+}
+
+/* ---------- WhatsApp Flow (the in-chat form) ---------- */
+
+function sheet(title, html) {
+  const s = document.createElement('div'); s.className = 'sheet';
+  s.innerHTML = `<header><button aria-label="Close">✕</button><span>${title}</span></header>${html}`;
+  s.querySelector('header button').onclick = () => s.remove();
+  app.append(s); return s;
+}
+
+async function openFlow() {
+  const d = dates();
+  const s = sheet('Book a room', `<div class="body"><p class="loading">Loading…</p></div>
+    <footer><button class="primary" id="fpay" disabled>Continue</button><p class="managed">Managed by Dragonfly – The Art Hotel</p></footer>`);
+  await wait(500);  // INIT request to our Flow endpoint
+  const form = {day: 0, hours: booking?.hours || 3, time: null, name: GUEST.name};
+  if (!slots(0, form.hours).length) form.day = 1;   // today is over: start on tomorrow
+  const body = s.querySelector('.body'), pay = s.querySelector('#fpay');
+
+  function render() {
+    const sl = slots(form.day, form.hours);
+    if (!sl.includes(form.time)) form.time = sl[0] ?? null;
+    body.innerHTML = `
+      <div><p class="lbl">Date</p><div class="radio">${d.map(x =>
+        `<label><span>${x.title}<small>${x.sub}</small></span><input type="radio" name="day" value="${x.id}" ${x.id === form.day ? 'checked' : ''}></label>`).join('')}</div></div>
+      <div><p class="lbl">Stay</p><div class="radio">${Object.keys(PRICES).map(h =>
+        `<label><span>${h} hours<small>${inr(PRICES[h])}</small></span><input type="radio" name="hours" value="${h}" ${+h === form.hours ? 'checked' : ''}></label>`).join('')}</div></div>
+      <div><label class="lbl" for="ftime">Check-in time</label>
+        ${sl.length ? `<select id="ftime">${sl.map(h => `<option value="${h}" ${h === form.time ? 'selected' : ''}>${hr(h)}</option>`).join('')}</select>`
+                    : `<p class="loading">No rooms left on this date.</p>`}</div>
+      <div><label class="lbl" for="fname">Name</label><input class="input" id="fname" value="${esc(form.name)}"></div>`;
+    pay.disabled = !form.time || !form.name.trim();
+    pay.textContent = `Pay ${inr(PRICES[form.hours])}`;
+    body.querySelectorAll('input[type=radio]').forEach(r => r.onchange = async () => {
+      form[r.name] = +r.value;
+      pay.disabled = true; pay.textContent = 'Checking rooms…';
+      await wait(350);  // data_exchange: live slots for this date + stay
+      render();
+    });
+    const t = body.querySelector('#ftime'); if (t) t.onchange = () => form.time = +t.value;
+    const n = body.querySelector('#fname'); n.oninput = () => { form.name = n.value; pay.disabled = !form.time || !form.name.trim(); };
+  }
+  render();
+  pay.onclick = async () => {
+    s.remove();
+    GUEST.name = form.name.trim();
+    booking = {hours: form.hours, time: form.time, dateLabel: d[form.day].title, amount: PRICES[form.hours], id: 'DF-1042', room: '304'};
+    bubble('out', `<b>Book a room</b><br><small style="color:var(--meta)">Response sent</small>`);
+    await typing(); orderMessage();
+  };
+}
+
+/* ---------- WhatsApp Pay: review order → UPI app ---------- */
+
+function openOrder(cta) {
+  const b = booking;
+  const s = sheet('Review order', `<div class="body">
+      <div><div class="row"><span>Deluxe room · ${b.hours} hrs day use<br><small style="color:var(--meta)">${b.dateLabel}, ${hr(b.time)} · Qty 1</small></span><span>${inr(b.amount)}</span></div>
+      <div class="row"><span>Taxes</span><span>Included</span></div>
+      <div class="row total"><span>Total</span><span>${inr(b.amount)}</span></div></div>
+      <p class="lbl">Pay with UPI</p>
+      <div class="app-pick" style="display:flex;flex-direction:column;gap:8px">
+        ${['PhonePe', 'Google Pay', 'Paytm', 'Other UPI app'].map(a => `<button>${a}</button>`).join('')}</div>
+    </div><footer><p class="managed">Payment processed by the hotel's payment gateway (Razorpay)</p></footer>`);
+  s.querySelectorAll('.app-pick button').forEach(btn => btn.onclick = () => upiApp(s, btn.textContent, cta));
+}
+
+function upiApp(prev, name, cta) {
+  prev.remove();
+  const s = sheet(name, `<div class="body">
+      <p class="sim">Simulated. On a real phone ${esc(name)} opens here and the guest enters their UPI PIN inside ${esc(name)}. WhatsApp and the hotel never see the PIN.</p>
+      <div class="row total"><span>Paying Dragonfly – The Art Hotel</span><span>${inr(booking.amount)}</span></div>
+    </div><footer><button class="primary">Simulate successful payment</button></footer>`);
+  s.querySelector('.primary').onclick = async () => {
+    s.remove();
+    cta.disabled = true; cta.textContent = 'Paid ✓';
+    await typing(700);
+    const b = booking;
+    bubble('in', wa(`*Booking confirmed* · ${b.id}\n\nRoom ${b.room} · Deluxe\n${b.dateLabel}, ${hr(b.time)} → ${hr(b.time + b.hours)}\n${inr(b.amount)} paid\n\nShow this message at the front desk.`));
+    await wait(400); locationMessage();
+    if (scenario === 'first') {
+      await wait(900);
+      chipEl(`1 hour before check-in`);
+      templateMessage(`Hi ${GUEST.name.split(' ')[0]}, room ${b.room} is ready for you at ${hr(b.time)}. See you soon.`, ['↗ Get directions']);
+    }
+  };
+}
+
+/* ---------- Scenarios ---------- */
+
+function startFirst() {
+  scenario = 'first'; booking = null; chat.innerHTML = ''; document.querySelectorAll('.sheet').forEach(s => s.remove());
+  $('#mode').textContent = 'Returning guest';
+  chipEl('Today');
+  chipEl('This business uses a secure service from Meta to manage this chat.');
+  compose('Hi, I want to book a room', async () => { await typing(); flowMessage(); });
+}
+
+function startReturning() {
+  scenario = 'returning'; chat.innerHTML = ''; document.querySelectorAll('.sheet').forEach(s => s.remove());
+  $('#mode').textContent = 'New guest';
+  booking = {hours: 6, time: 0, dateLabel: '', amount: PRICES[6], id: 'DF-1077', room: '211'};
+  chipEl('Last week');
+  bubble('in', wa(`*Booking confirmed* · DF-1042\n\nRoom 304 · Deluxe\n6 hrs day use · ${inr(PRICES[6])} paid`));
+  chipEl('Today');
+  compose('Hi', async () => {
+    await typing();
+    const d = dates(), first = slots(0, 6)[0];
+    const day = first != null ? 0 : 1, time = first ?? slots(1, 6)[0];
+    Object.assign(booking, {time, dateLabel: d[day].title});
+    replyButtons(`Welcome back, ${GUEST.name.split(' ')[0]}.\n\nYour usual: *6 hrs · Deluxe*\n${d[day].title}, ${hr(time)} · *${inr(PRICES[6])}*`, [
+      {title: 'Book my usual', run: async () => { await typing(); orderMessage(); }},
+      {title: 'Something else', run: async () => { await typing(); flowMessage(); }},
+    ]);
+  });
+}
+
+$('#mode').onclick = () => scenario === 'first' ? startReturning() : startFirst();
+startFirst();
+</script>
